@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timestamp Foto</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <aside class="sidebar">
+      <div>
+        <div class="title">Timestamp Foto</div>
+        <div class="subtitle">Pilih gambar lalu atur jam, tanggal, dan lokasi.</div>
+      </div>
+
+      <label class="upload-btn">
+        <span id="uploadLabel">Pilih Foto</span>
+        <input type="file" id="fileInput" accept="image/*" />
+      </label>
+
+      <div class="field">
+        <label for="timeInput">Jam</label>
+        <input type="time" id="timeInput" value="13:20" />
+      </div>
+
+      <div class="field">
+        <label for="dateInput">Tanggal</label>
+        <input type="date" id="dateInput" />
+        <div class="date-preview" id="datePreview"></div>
+      </div>
+
+      <div class="field">
+        <label for="locationInput">Lokasi</label>
+        <textarea id="locationInput" rows="2">Galala, Oba Utara, Kota Tidore Kepulauan, Maluku Utara</textarea>
+      </div>
+
+      <div class="field">
+        <label>Kode verifikasi</label>
+        <div class="code-row">
+          <div class="code-display" id="codeDisplay"></div>
+          <button type="button" class="acak-btn" id="regenBtn">Acak</button>
+        </div>
+      </div>
+
+      <div class="footer">
+        <button type="button" class="download-btn" id="downloadBtn" disabled>Unduh Foto</button>
+        <div class="helper-text">Format JPEG, kualitas tinggi</div>
+      </div>
+    </aside>
+
+    <main class="canvas-area">
+      <div class="empty-state" id="emptyState">
+        Belum ada foto.<br />Klik &quot;Pilih Foto&quot; di panel kiri untuk mulai.
+      </div>
+      <canvas id="canvas" style="display:none;"></canvas>
+    </main>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

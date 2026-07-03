@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+</helmet>
+<div style="display:flex; min-height:100vh; background:oklch(0.16 0.01 260); font-family:Arial, Helvetica, sans-serif; color:#fff;">
+
+  <div style="width:340px; flex:0 0 340px; padding:28px 24px; display:flex; flex-direction:column; gap:20px; background:oklch(0.19 0.012 260); border-right:1px solid oklch(0.28 0.01 260);">
+    <div>
+      <div style="font-size:22px; font-weight:700; color:#FFB020;">Timestamp Foto</div>
+      <div style="font-size:13px; color:oklch(0.7 0.01 260); margin-top:2px;">Pilih gambar lalu atur jam, tanggal, dan lokasi.</div>
+    </div>
+
+    <label style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; background:#FFB020; color:#1a1a1a; font-weight:700; font-size:14px; border-radius:8px; cursor:pointer;">
+      <span>{{ uploadLabel }}</span>
+      <input type="file" accept="image/*" onChange="{{ onFile }}" style="display:none;" />
+    </label>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label style="font-size:12px; color:oklch(0.7 0.01 260); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Jam</label>
+      <input type="time" value="{{ time }}" onChange="{{ onTimeChange }}" style="padding:10px 12px; border-radius:8px; border:1px solid oklch(0.32 0.01 260); background:oklch(0.14 0.01 260); color:#fff; font-size:15px;" />
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label style="font-size:12px; color:oklch(0.7 0.01 260); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Tanggal</label>
+      <input type="date" value="{{ dateInput }}" onChange="{{ onDateChange }}" style="padding:10px 12px; border-radius:8px; border:1px solid oklch(0.32 0.01 260); background:oklch(0.14 0.01 260); color:#fff; font-size:15px;" />
+      <div style="font-size:13px; color:oklch(0.75 0.02 80);">{{ formattedDate }}</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label style="font-size:12px; color:oklch(0.7 0.01 260); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Lokasi</label>
+      <textarea value="{{ location }}" onChange="{{ onLocationChange }}" rows="2" style="padding:10px 12px; border-radius:8px; border:1px solid oklch(0.32 0.01 260); background:oklch(0.14 0.01 260); color:#fff; font-size:14px; resize:vertical; font-family:inherit;"></textarea>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label style="font-size:12px; color:oklch(0.7 0.01 260); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Kode verifikasi</label>
+      <div style="display:flex; gap:8px;">
+        <div style="flex:1; padding:10px 12px; border-radius:8px; border:1px solid oklch(0.32 0.01 260); background:oklch(0.14 0.01 260); font-size:14px; letter-spacing:0.05em;">{{ code }}</div>
+        <button onClick="{{ regenCode }}" style="padding:0 14px; border-radius:8px; border:1px solid oklch(0.32 0.01 260); background:transparent; color:#fff; cursor:pointer; font-size:13px;">Acak</button>
+      </div>
+    </div>
+
+    <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px;">
+      <button onClick="{{ onDownload }}" disabled="{{ !hasImage }}" style="{{ downloadBtnStyle }}">
+        Unduh Foto
+      </button>
+      <div style="font-size:12px; color:oklch(0.55 0.01 260); text-align:center;">Format JPEG, kualitas tinggi</div>
+    </div>
+  </div>
+
+  <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:32px; background:oklch(0.12 0.01 260);">
+    <sc-if value="{{ hasImage }}" hint-placeholder-val="{{ false }}">
+      <canvas ref="{{ canvasRef }}" style="max-width:100%; max-height:calc(100vh - 64px); border-radius:6px; box-shadow:0 20px 60px rgba(0,0,0,0.5);"></canvas>
+    </sc-if>
+    <sc-if value="{{ !hasImage }}" hint-placeholder-val="{{ true }}">
+      <div style="width:360px; height:480px; border:2px dashed oklch(0.32 0.01 260); border-radius:12px; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; color:oklch(0.55 0.01 260); font-size:14px;">
+        Belum ada foto.<br />Klik "Pilih Foto" di panel kiri untuk mulai.
+      </div>
+    </sc-if>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const today = new Date();
+    this.canvasRef = React.createRef();
+    this.state = {
+      imageEl: null,
+      fileName: null,
+      time: '13:20',
+      dateInput: this.toDateInputValue(today),
+      location: 'Galala, Oba Utara, Kota Tidore Kepulauan, Maluku Utara',
+      code: this.randomCode(),
+    };
+  }
+
+  componentDidUpdate() {
+    this.draw();
+  }
+
+  toDateInputValue(d) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  formatIndonesianDate(dateInput) {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', "Jumat", 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const [y, m, d] = dateInput.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return `${days[dt.getDay()]}, ${String(d).padStart(2, '0')} ${months[m - 1]} ${y}`;
+  }
+
+  randomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+    let s = '';
+    for (let i = 0; i < 12; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+
+  onFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        this.setState({ imageEl: img, fileName: file.name }, () => this.draw());
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  onTimeChange = (e) => this.setState({ time: e.target.value });
+  onDateChange = (e) => this.setState({ dateInput: e.target.value });
+  onLocationChange = (e) => this.setState({ location: e.target.value });
+  regenCode = () => this.setState({ code: this.randomCode() });
+
+  draw() {
+    const canvas = this.canvasRef.current;
+    const img = this.state.imageEl;
+    if (!canvas || !img) return;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    this.drawOverlay(ctx, canvas.width, canvas.height);
+  }
+
+  drawOverlay(ctx, w, h) {
+    const s = w / 1200;
+    const time = this.state.time || '00:00';
+    const date = this.formatIndonesianDate(this.state.dateInput);
+    const location = this.state.location;
+    const code = this.state.code;
+
+    ctx.textBaseline = 'alphabetic';
+
+    const grad = ctx.createLinearGradient(0, h * 0.55, 0, h);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, h * 0.55, w, h * 0.45);
+
+    const gradTop = ctx.createLinearGradient(0, 0, 0, h * 0.18);
+    gradTop.addColorStop(0, 'rgba(0,0,0,0.35)');
+    gradTop.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradTop;
+    ctx.fillRect(0, 0, w, h * 0.18);
+
+    ctx.textAlign = 'right';
+    ctx.font = `700 ${Math.round(34 * s)}px Arial, sans-serif`;
+    ctx.fillStyle = '#FFB020';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 4 * s;
+    ctx.fillText('Timemark', w - 24 * s, 44 * s);
+    ctx.font = `400 ${Math.round(19 * s)}px Arial, sans-serif`;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Foto 100% akurat', w - 24 * s, 68 * s);
+    ctx.shadowBlur = 0;
+
+    ctx.save();
+    ctx.translate(w - 12 * s, h * 0.62);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'left';
+    ctx.font = `600 ${Math.round(15 * s)}px Arial, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 3 * s;
+    ctx.fillText(`\u00A9 ${code}   Timemark Verified`, 0, 0);
+    ctx.restore();
+    ctx.shadowBlur = 0;
+
+    let cursorY = h - 30 * s;
+
+    ctx.font = `400 ${Math.round(15 * s)}px Arial, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.textAlign = 'left';
+    ctx.fillText('\u2713  Timemark menjamin keaslian waktu', 26 * s, cursorY);
+    cursorY -= 30 * s;
+
+    ctx.font = `700 ${Math.round(23 * s)}px Arial, sans-serif`;
+    ctx.fillStyle = '#ffffff';
+    const maxWidth = w - 60 * s;
+    const words = (location || '').split(' ');
+    let lines = [];
+    let cur = '';
+    for (const word of words) {
+      const test = cur ? cur + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && cur) {
+        lines.push(cur);
+        cur = word;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) lines.push(cur);
+    lines = lines.slice(0, 2);
+    const lineH = 30 * s;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      ctx.fillText(lines[i], 26 * s, cursorY);
+      cursorY -= lineH;
+    }
+    cursorY -= 6 * s;
+
+    ctx.font = `700 ${Math.round(26 * s)}px Arial, sans-serif`;
+    ctx.fillStyle = '#FFB020';
+    ctx.fillRect(26 * s, cursorY - 22 * s, 4 * s, 30 * s);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(date, 38 * s, cursorY);
+    cursorY -= 44 * s;
+
+    const boxH2 = 56 * s;
+    const boxTopY = cursorY - boxH2 + 8 * s;
+    ctx.font = `700 ${Math.round(40 * s)}px Arial, sans-serif`;
+    const tw = ctx.measureText(time).width;
+    ctx.fillStyle = '#ffffff';
+    const bx = 26 * s, by = boxTopY, bw = tw + 32 * s, bh = boxH2;
+    const r = 4 * s;
+    ctx.beginPath();
+    ctx.moveTo(bx + r, by);
+    ctx.arcTo(bx + bw, by, bx + bw, by + bh, r);
+    ctx.arcTo(bx + bw, by + bh, bx, by + bh, r);
+    ctx.arcTo(bx, by + bh, bx, by, r);
+    ctx.arcTo(bx, by, bx + bw, by, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(time, bx + 16 * s, by + bh / 2 + 2 * s);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  onDownload = () => {
+    const canvas = this.canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = 'timestamp-' + (this.state.fileName || 'foto') + '.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+  };
+
+  renderVals() {
+    const hasImage = !!this.state.imageEl;
+    return {
+      canvasRef: this.canvasRef,
+      hasImage,
+      uploadLabel: hasImage ? 'Ganti Foto' : 'Pilih Foto',
+      onFile: this.onFile,
+      time: this.state.time,
+      onTimeChange: this.onTimeChange,
+      dateInput: this.state.dateInput,
+      onDateChange: this.onDateChange,
+      formattedDate: this.formatIndonesianDate(this.state.dateInput),
+      location: this.state.location,
+      onLocationChange: this.onLocationChange,
+      code: this.state.code,
+      regenCode: this.regenCode,
+      onDownload: this.onDownload,
+      downloadBtnStyle: {
+        padding: '13px 16px',
+        borderRadius: '8px',
+        border: 'none',
+        background: hasImage ? '#FFB020' : 'oklch(0.3 0.01 260)',
+        color: hasImage ? '#1a1a1a' : 'oklch(0.55 0.01 260)',
+        fontWeight: 700,
+        fontSize: '15px',
+        cursor: hasImage ? 'pointer' : 'not-allowed',
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
