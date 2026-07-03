@@ -208,8 +208,9 @@
 
   els.downloadBtn.addEventListener('click', () => {
     if (!state.imageEl) return;
+    const baseName = (state.fileName || 'foto').replace(/\.[^./\\]+$/, '');
     const link = document.createElement('a');
-    link.download = 'timestamp-' + (state.fileName || 'foto') + '.jpg';
+    link.download = 'timestamp-' + baseName + '.jpg';
     link.href = els.canvas.toDataURL('image/jpeg', 0.92);
     link.click();
   });
